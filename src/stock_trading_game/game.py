@@ -42,3 +42,7 @@ class Game:
             self.rounds_price[kind].append(price)
 
         self.round += 1
+
+    def rounds_price_list(self) -> list[list[Price]]:
+        kind_based_matrix = [self.rounds_price[kind] for kind in self.trading.kinds]
+        return list(map(list, zip(*kind_based_matrix)))

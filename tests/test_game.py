@@ -42,6 +42,12 @@ def test_next_round_and_shift(game: Game) -> None:
     assert game.current_round_price(drevo) == drevo_first_round_price * 1.01
     assert game.current_round_price(zlato) == zlato_first_round_price * 1.03
 
+    assert game.rounds_price_list() == [
+            [Price(10.0), Price(1000.0)],
+            [Price(10.1), Price(1020.0)],
+            [Price(10.201), Price(1040.6)],
+            ]
+
 
 def test_next_round_and_shift_with_extra(game: Game) -> None:
     drevo = game.trading.kinds[0]

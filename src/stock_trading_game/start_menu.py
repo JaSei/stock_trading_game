@@ -50,11 +50,11 @@ def start_menu() -> Game:
 
                 read_csv = not questionary.confirm("Is this the correct data?").ask()
 
-            initial_round = questionary.text(
+            initial_round = int(questionary.text(
                 "Enter the initial round number",
                 default="0",
-                validate=lambda round: (round.isdigit() and round < trading.max_rounds()) or "Invalid round number",
-            ).ask()
+                validate=lambda round: (round.isdigit() and int(round) < trading.max_rounds()) or "Invalid round number",
+            ).ask())
 
         case StartMenuItems.LOAD_GAME:
             print("Loading a saved game...")
