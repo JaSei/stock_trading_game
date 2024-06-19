@@ -1,11 +1,12 @@
-import sys
 import csv
+import sys
 
 import questionary
 
+from .company_kind import CompanyKind, CompanyKindTrend
 from .player import Player
 from .trading import Trading
-from .company_kind import CompanyKind, CompanyKindTrend
+from .game import Game
 
 
 class StartMenuItems:
@@ -14,7 +15,7 @@ class StartMenuItems:
     QUIT = "Quit"
 
 
-def start_menu() -> list[Player]:
+def start_menu() -> Game:
     print("Welcome to the Stock Trading Game!")
 
     action = questionary.select(
@@ -23,6 +24,8 @@ def start_menu() -> list[Player]:
     ).ask()
 
     players = list[Player]()
+    trading = Trading(kinds=[], trends=[])
+    initial_round = 0
     match action:
         case StartMenuItems.NEW_GAME:
             print("Starting a new game...")
@@ -33,12 +36,26 @@ def start_menu() -> list[Player]:
             ).ask()
             players = [Player(name=player) for player in players_text.split("\n")]
 
-            path = questionary.path(
-                "Enter the path to trading csv data",
-                validate=lambda path: path.endswith(".csv") or "Invalid path, must end with .csv",
+            read_csv = True
+            while read_csv:
+                path = questionary.path(
+                    "Enter the path to trading csv data",
+                    validate=lambda path: path.endswith(".csv")
+                    or "Invalid path, must end with .csv",
+                ).ask()
+
+                trading = parse_trading_csv(path)
+
+                trading.print_summary()
+
+                read_csv = not questionary.confirm("Is this the correct data?").ask()
+
+            initial_round = questionary.text(
+                "Enter the initial round number",
+                default="0",
+                validate=lambda round: (round.isdigit() and round < trading.max_rounds()) or "Invalid round number",
             ).ask()
 
-            parse_trading_csv(path)
         case StartMenuItems.LOAD_GAME:
             print("Loading a saved game...")
         case StartMenuItems.QUIT:
@@ -47,7 +64,10 @@ def start_menu() -> list[Player]:
         case _:
             print("Invalid action")
 
-    return players
+    game = Game(players=players, trading=trading)
+    game.shift_to_round(initial_round)
+
+    return game
 
 
 # first column is only metadata, it can be skipped
@@ -80,6 +100,5 @@ def parse_trading_csv(path: str) -> Trading:
         for row in reader:
             for i, value in enumerate(row[1:]):
                 trend_data[i].add_trend(float(value.replace(",", ".")))
-
 
     return Trading(kinds=company_kinds, trends=trend_data)

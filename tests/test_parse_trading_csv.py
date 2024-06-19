@@ -1,11 +1,7 @@
 from stock_trading_game.company_kind import CompanyKind
-from stock_trading_game.start_menu import parse_trading_csv
+from stock_trading_game.trading import Trading
 
-
-def test_parse_trading_csv() -> None:
-    path = "tests/trading_data.csv"
-    trading = parse_trading_csv(path)
-
+def test_parse_trading_csv(trading: Trading) -> None:
     drevo = CompanyKind(name="Drevo", amount=5, initial_price=10)
     zlato = CompanyKind(name="Zlato", amount=3, initial_price=1000)
 
@@ -17,3 +13,5 @@ def test_parse_trading_csv() -> None:
 
     assert trading.trend(drevo) == [0.0, 0.01]
     assert trading.trend(zlato) == [0.02, 0.03]
+
+    assert trading.max_rounds() == 2
