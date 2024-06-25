@@ -1,6 +1,6 @@
 import pytest
 
-from stock_trading_game.trading import Trading
+from stock_trading_game.model.trading import Trading
 from stock_trading_game.start_menu import parse_trading_csv
 
 @pytest.fixture

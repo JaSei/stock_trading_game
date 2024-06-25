@@ -3,10 +3,11 @@ import sys
 
 import questionary
 
-from .company_kind import CompanyKind, CompanyKindTrend
-from .player import Player
-from .trading import Trading
 from .game import Game
+from .model.company_kind import CompanyKind, CompanyKindTrend
+from .model.numerics import PercentChange, Price
+from .model.player import Player
+from .model.trading import Trading
 
 
 class StartMenuItems:
@@ -23,11 +24,13 @@ def start_menu() -> Game:
         choices=[StartMenuItems.NEW_GAME, StartMenuItems.LOAD_GAME, StartMenuItems.QUIT],
     ).ask()
 
-    players = list[Player]()
-    trading = Trading(kinds=[], trends=[])
-    initial_round = 0
+    game = None
     match action:
         case StartMenuItems.NEW_GAME:
+            players = list[Player]()
+            trading = Trading(kinds=[], trends=[])
+            initial_round = 0
+
             print("Starting a new game...")
             players_text = questionary.text(
                 "Players:",
@@ -35,6 +38,7 @@ def start_menu() -> Game:
                 instruction="Enter each player on a new line, end with esc and enter",
             ).ask()
             players = [Player(name=player) for player in players_text.split("\n")]
+            players.append(Player(name="Bank"))
 
             read_csv = True
             while read_csv:
@@ -50,22 +54,35 @@ def start_menu() -> Game:
 
                 read_csv = not questionary.confirm("Is this the correct data?").ask()
 
-            initial_round = int(questionary.text(
-                "Enter the initial round number",
-                default="0",
-                validate=lambda round: (round.isdigit() and int(round) < trading.max_rounds()) or "Invalid round number",
-            ).ask())
+            initial_round = int(
+                questionary.text(
+                    "Enter the initial round number",
+                    default="0",
+                    validate=lambda round: (round.isdigit() and int(round) < trading.max_rounds())
+                    or "Invalid round number",
+                ).ask()
+            )
+
+            game = Game(players=players, trading=trading)
+            game.shift_to_round(initial_round)
 
         case StartMenuItems.LOAD_GAME:
             print("Loading a saved game...")
+            file_path = questionary.path(
+                "Enter the path to the saved game",
+                validate=lambda path: path.endswith(".json")
+                or "Invalid path, must end with .json",
+            ).ask()
+
+            game = Game.load_from(file_path)
+
         case StartMenuItems.QUIT:
             print("Quitting...")
             sys.exit(0)
         case _:
             print("Invalid action")
 
-    game = Game(players=players, trading=trading)
-    game.shift_to_round(initial_round)
+    assert game is not None
 
     return game
 
@@ -89,7 +106,7 @@ def parse_trading_csv(path: str) -> Trading:
             kind = CompanyKind(
                 name=company_kind[i],
                 amount=company_kind_amount[i],
-                initial_price=company_kind_price[i],
+                initial_price=Price(company_kind_price[i]),
             )
             company_kinds.append(kind)
 
@@ -99,6 +116,6 @@ def parse_trading_csv(path: str) -> Trading:
 
         for row in reader:
             for i, value in enumerate(row[1:]):
-                trend_data[i].add_trend(float(value.replace(",", ".")))
+                trend_data[i].add_trend(PercentChange(float(value.replace(",", "."))))
 
     return Trading(kinds=company_kinds, trends=trend_data)

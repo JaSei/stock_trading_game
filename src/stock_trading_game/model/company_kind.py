@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-from .numerics import Price, PercentChange
+from .numerics import PercentChange, Price
 
 
 class CompanyKind(BaseModel):
@@ -8,8 +8,7 @@ class CompanyKind(BaseModel):
     amount: int
     initial_price: Price
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __hash__(self) -> int:
         return hash(self.name)
