@@ -1,11 +1,12 @@
 import csv
 import sys
+import logging
 
 import questionary
 
 from .game import Game
 from .model.company_kind import CompanyKind, CompanyKindTrend
-from .model.numerics import PercentChange, Price
+from .model.numerics import PercentChange, TotalPrice
 from .model.player import Player
 from .model.trading import Trading
 
@@ -18,6 +19,8 @@ class StartMenuItems:
 
 def start_menu() -> Game:
     print("Welcome to the Stock Trading Game!")
+
+    log = logging.getLogger(__name__)
 
     action = questionary.select(
         "What do you want to do?",
@@ -32,6 +35,7 @@ def start_menu() -> Game:
             initial_round = 0
 
             print("Starting a new game...")
+            log.info("Starting a new game...")
             players_text = questionary.text(
                 "Players:",
                 multiline=True,
@@ -40,6 +44,8 @@ def start_menu() -> Game:
             players = [Player(name=player) for player in players_text.split("\n")]
             players.append(Player(name="Bank"))
 
+            log.info("Players: %s", players_text)
+
             read_csv = True
             while read_csv:
                 path = questionary.path(
@@ -47,6 +53,8 @@ def start_menu() -> Game:
                     validate=lambda path: path.endswith(".csv")
                     or "Invalid path, must end with .csv",
                 ).ask()
+
+                log.info("Trading data path: %s", path)
 
                 trading = parse_trading_csv(path)
 
@@ -63,16 +71,21 @@ def start_menu() -> Game:
                 ).ask()
             )
 
+            log.info("Initial round: %s", initial_round)
+
             game = Game(players=players, trading=trading)
             game.shift_to_round(initial_round)
 
         case StartMenuItems.LOAD_GAME:
             print("Loading a saved game...")
+            log.info("Loading a saved game...")
             file_path = questionary.path(
                 "Enter the path to the saved game",
                 validate=lambda path: path.endswith(".json")
                 or "Invalid path, must end with .json",
             ).ask()
+
+            log.info("Saved game path: %s", file_path)
 
             game = Game.load_from(file_path)
 
@@ -106,7 +119,7 @@ def parse_trading_csv(path: str) -> Trading:
             kind = CompanyKind(
                 name=company_kind[i],
                 amount=company_kind_amount[i],
-                initial_price=Price(company_kind_price[i]),
+                initial_price=TotalPrice(company_kind_price[i]),
             )
             company_kinds.append(kind)
 

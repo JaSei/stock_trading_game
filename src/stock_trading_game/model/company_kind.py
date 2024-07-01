@@ -1,12 +1,12 @@
 from pydantic import BaseModel, ConfigDict
 
-from .numerics import PercentChange, Price
+from .numerics import PercentChange, TotalPrice
 
 
 class CompanyKind(BaseModel):
     name: str
     amount: int
-    initial_price: Price
+    initial_price: TotalPrice
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

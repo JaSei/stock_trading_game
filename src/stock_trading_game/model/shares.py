@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator,  model_serializer
+from pydantic import BaseModel, field_validator, model_serializer
 
 from .player import Player
 
@@ -18,7 +18,6 @@ class Shares(BaseModel):
     @model_serializer
     def serialize(self) -> dict[str, int]:
         return {player.name: share for player, share in self.players_share.items()}
-        
 
     def owners(self) -> list[Player]:
         return list(self.players_share.keys())
@@ -38,10 +37,13 @@ class Shares(BaseModel):
         if not amount.isdigit():
             return "Isn't a number"
 
-        available_shares = self.players_share[player]
+        available_shares = self.players_share.get(player, 0)
         if int(amount) > available_shares:
             return f"{player.name} have only {available_shares} shares"
         return True
 
     def owner_amount_of_shares(self, owner: Player) -> int:
         return self.players_share[owner]
+
+    def owner_percent_share(self, owner: Player) -> float:
+        return self.players_share[owner] / AMOUNT_OF_SHARES
