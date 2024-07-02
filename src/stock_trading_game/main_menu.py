@@ -11,6 +11,7 @@ from rich.table import Table
 
 from .dividends_menu import check_dividends, dividends_menu
 from .game import Game
+from .game_menu import game_menu
 from .loan_menu import check_loans_are_paid, list_active_loans, loan_menu
 from .model.numerics import (
     OneSharePrice,
@@ -39,6 +40,7 @@ class MainMenuItems:
     LOAN_MENU = "Loan"
     LIST_SHARES_BY_PLAYER = "List shares by player"
     DIVIDENDS = "Dividends"
+    GAME_MENU = "Game menu"
     QUIT = "Quit"
 
 
@@ -66,6 +68,7 @@ def main_menu(game: Game) -> None:
                     MainMenuItems.LIST_ROUNDS,
                     MainMenuItems.LIST_SHARES_BY_PLAYER,
                     MainMenuItems.LIST_PLAYERS,
+                    MainMenuItems.GAME_MENU,
                     MainMenuItems.QUIT,
                 ],
             ).ask()
@@ -104,6 +107,8 @@ def main_menu(game: Game) -> None:
                     list_shares_by_player(game)
                 case MainMenuItems.DIVIDENDS:
                     dividends_menu(game, log)
+                case MainMenuItems.GAME_MENU:
+                    game_menu(game, log)
                 case MainMenuItems.QUIT:
                     save_menu(game)
                     break

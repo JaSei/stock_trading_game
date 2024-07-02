@@ -13,7 +13,7 @@ class LoanMenuItems:
     LIST_PLAYER_LOANS = "List player's loans"
     NEW_LOAN = "New Loan"
     PAY_LOAN = "Pay Loan"
-    EXIT = "Exit"
+    BACK = "Back to main menu"
 
 
 def loan_menu(game: Game, log: Logger) -> None:
@@ -25,7 +25,7 @@ def loan_menu(game: Game, log: Logger) -> None:
                 LoanMenuItems.LIST_PLAYER_LOANS,
                 LoanMenuItems.NEW_LOAN,
                 LoanMenuItems.PAY_LOAN,
-                LoanMenuItems.EXIT,
+                LoanMenuItems.BACK,
             ],
         ).ask()
 
@@ -38,7 +38,7 @@ def loan_menu(game: Game, log: Logger) -> None:
                 new_loan(game, log)
             case LoanMenuItems.PAY_LOAN:
                 pay_loan(game, log)
-            case LoanMenuItems.EXIT:
+            case LoanMenuItems.BACK:
                 break
 
 
