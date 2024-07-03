@@ -157,6 +157,8 @@ def new_loan(game: Game, log: Logger) -> None:
 def check_loans_are_paid(game: Game, log: Logger) -> bool:
     for player in game.players:
         for loan in player.loans:
+            if loan.is_active():
+                continue
             print(f"Checking loan of {player.name}")
             if loan.is_pay_off_round(game.round):
                 print(f"{player.name} have to paid off the loan of {loan.final_amount()}")

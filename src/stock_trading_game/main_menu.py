@@ -33,7 +33,7 @@ class MainMenuItems:
     LIST_COMPANIES = "List companies"
     BUY_COMPANY = "Buy company"
     EXTEND_COMPANY = "Extend company"
-    SHARE_TRADE = "Share trade"
+    SHARE_TRADE = "Trade shares"
     BUY_SHARES_FROM_BANK = "Buy shares from bank"
     LIST_SHAREHOLDERS = "List shareholders"
     NEXT_ROUND = "Next round"
@@ -411,7 +411,7 @@ def buy_share_from_bank(game: Game, log: logging.Logger) -> None:
     approved_shares = int(
         questionary.text(
             "Enter the number of shares to buy",
-            validate=lambda amount: amount.isdigit() and 0 < int(amount) <= maximum_shares_to_buy,
+            validate=lambda amount: company.validate_player_share(game.bank(), amount),
             default=str(maximum_shares_to_buy),
         ).ask()
     )

@@ -1,12 +1,12 @@
 from logging import Logger
 
 import questionary
-from rich.table import Table
 from rich.console import Console
+from rich.table import Table
 
 from .game import Game
+from .model.numerics import Price, format_price
 from .print.shareholders import print_shareholders
-from .model.numerics import format_price, Price
 
 
 class DividendsMenu:
@@ -32,7 +32,7 @@ def dividends_menu(game: Game, log: Logger) -> None:
             case DividendsMenu.SET_DIVIDENDS:
                 set_dividends(game, log)
             case DividendsMenu.REMOVE_DIVIDENDS:
-                print("Remove Dividends")
+                remove_dividends(game, log)
             case DividendsMenu.VIEW_COMPANY_DIVIDENDS:
                 view_company_dividends(game)
             case DividendsMenu.EXIT:
@@ -58,19 +58,6 @@ def set_dividends(game: Game, log: Logger) -> None:
     log.info(f"Set dividends for {company_name} every {dividend_period} rounds")
 
     company.set_dividends(game.round, int(dividend_period))
-
-
-def remove_dividends(game: Game) -> None:
-    print("Remove Dividends")
-
-    company_name = questionary.select(
-        "Which company do you want to remove dividends for?",
-        choices=[company.name for company in game.list_companies_without_dividents()],
-    ).ask()
-
-    company = game.company_by_name(company_name)
-
-    company.disable_dividends()
 
 
 def view_company_dividends(game: Game) -> None:
@@ -138,3 +125,17 @@ def check_dividends(game: Game, log: Logger) -> None:
                             f"{player.name} got {int(dividend_to_pay) / company.owner_amount_of_shares(player)} in dividends"
                         )
                     break
+
+
+def remove_dividends(game: Game, log: Logger) -> None:
+    print("Remove Dividends")
+
+    company_name = questionary.select(
+        "Which company do you want to remove dividends for?",
+        choices=[company.name for company in game.list_companies_with_dividends()],
+    ).ask()
+
+    company = game.company_by_name(company_name)
+
+    company.disable_dividends()
+    log.info(f"Removed dividends for {company_name}")
