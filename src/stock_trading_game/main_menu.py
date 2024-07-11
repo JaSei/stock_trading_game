@@ -8,11 +8,13 @@ from typing import Optional
 import questionary
 from rich.console import Console
 from rich.table import Table
+from rich.tree import Tree
 
 from .dividends_menu import check_dividends, dividends_menu
 from .game import Game
 from .game_menu import game_menu
 from .loan_menu import check_loans_are_paid, list_active_loans, loan_menu
+from .model.company_kind import CompanyKind
 from .model.numerics import (
     OneSharePrice,
     PercentChange,
@@ -25,13 +27,17 @@ from .model.shares import AMOUNT_OF_SHARES
 from .print.shareholders import print_shareholders
 from .validators import validate_float, validate_minimal_price
 
+DESTROY_COMPANY_EFFICIENCY = 0.9
+
 
 class MainMenuItems:
     LIST_PLAYERS = "List players"
     LIST_ROUNDS = "List rounds"
     LIST_COMPANIES_HISTORY = "List companies history"
+    ADVANCED_LIST_COMPANIES_HISTORY = "Advanced list companies history"
     LIST_COMPANIES = "List companies"
     BUY_COMPANY = "Buy company"
+    DESTROY_COMPANY = "Destroy company"
     EXTEND_COMPANY = "Extend company"
     SHARE_TRADE = "Trade shares"
     BUY_SHARES_FROM_BANK = "Buy shares from bank"
@@ -58,10 +64,12 @@ def main_menu(game: Game) -> None:
                     MainMenuItems.BUY_SHARES_FROM_BANK,
                     MainMenuItems.LIST_SHAREHOLDERS,
                     MainMenuItems.LIST_COMPANIES_HISTORY,
+                    MainMenuItems.ADVANCED_LIST_COMPANIES_HISTORY,
                     MainMenuItems.LIST_COMPANIES,
                     MainMenuItems.SHARE_TRADE,
                     MainMenuItems.BUY_COMPANY,
                     MainMenuItems.EXTEND_COMPANY,
+                    MainMenuItems.DESTROY_COMPANY,
                     MainMenuItems.NEXT_ROUND,
                     MainMenuItems.LOAN_MENU,
                     MainMenuItems.DIVIDENDS,
@@ -75,19 +83,33 @@ def main_menu(game: Game) -> None:
 
             match action:
                 case MainMenuItems.LIST_PLAYERS:
-                    print("Players:")
-                    for player in game.players:
-                        print(player.name)
+                    print_players(game)
                 case MainMenuItems.LIST_ROUNDS:
                     print_rounds(game)
                 case MainMenuItems.LIST_COMPANIES_HISTORY:
                     print_companies_history(game)
+                case MainMenuItems.ADVANCED_LIST_COMPANIES_HISTORY:
+                    rounds_history = int(
+                        questionary.text(
+                            "Enter the number of rounds to show (back to front)",
+                            validate=lambda rounds: rounds.isdigit() or "Invalid rounds",
+                            default="10",
+                        ).ask()
+                    )
+                    company_kind_name = questionary.select(
+                        "Which company kind do you want to show?",
+                        choices=[kind.name for kind in game.companies],
+                    ).ask()
+                    company_kind = game.company_kind_by_name(company_kind_name)
+                    print_companies_history(game, company_kind, rounds_history)
                 case MainMenuItems.LIST_COMPANIES:
                     print_companies(game)
                 case MainMenuItems.BUY_COMPANY:
                     buy_company(game, log)
                 case MainMenuItems.EXTEND_COMPANY:
                     extend_company(game, log)
+                case MainMenuItems.DESTROY_COMPANY:
+                    destroy_company(game, log)
                 case MainMenuItems.SHARE_TRADE:
                     share_trade(game, log)
                 case MainMenuItems.BUY_SHARES_FROM_BANK:
@@ -180,18 +202,27 @@ def print_rounds(game: Game, from_i: int = 0) -> None:
     console.print(table)
 
 
-def print_companies_history(game: Game) -> None:
+def print_companies_history(
+    game: Game, company_kind: Optional[CompanyKind] = None, last_rounds_limit: int = 0
+) -> None:
     console = Console()
 
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("Round")
     for company in game.tradable_companies():
+        if company_kind is not None and game.kind_has_company(company_kind, company) is False:
+            continue
         table.add_column(company.name)
 
     for game_round in range(game.round + 1):
+        if last_rounds_limit != 0 and game_round < game.round - last_rounds_limit:
+            continue
         row = [f"{game_round}"]
 
         for company in game.tradable_companies():
+            if company_kind is not None and game.kind_has_company(company_kind, company) is False:
+                continue
+
             extension = ""
             if company.has_built_extension(game_round):
                 extension = "🏢"
@@ -338,9 +369,11 @@ def share_trade(game: Game, log: logging.Logger) -> None:
         choices=[company.name for company in game.tradable_companies()],
     ).ask()
 
-    print(f"Trading {company_name}...")
-
     company = game.company_by_name(company_name)
+
+    print(f"Trading {company_name} for price {format_price(company.current_one_share_price())}...")
+
+    print_shareholders(game, company)
 
     from_player_name = questionary.select(
         "Which player is trading?",
@@ -349,19 +382,23 @@ def share_trade(game: Game, log: logging.Logger) -> None:
 
     from_player = game.get_player_by_name(from_player_name)
 
-    to_player_name = questionary.select(
-        "Which player is receiving?",
-        choices=[player.name for player in game.players],
-    ).ask()
-
-    to_player = game.get_player_by_name(to_player_name)
-
     amount = int(
         questionary.text(
             "Enter the number of shares to trade",
             validate=lambda amount: company.validate_player_share(from_player, amount),
         ).ask()
     )
+
+    print(
+        f"Trading {amount} shares for {format_price(Price(company.current_one_share_price() * amount))}"
+    )
+
+    to_player_name = questionary.select(
+        "Which player is receiving?",
+        choices=[player.name for player in game.players],
+    ).ask()
+
+    to_player = game.get_player_by_name(to_player_name)
 
     price = TotalPrice(
         float(
@@ -483,3 +520,64 @@ def list_shares_by_player(game: Game, player: Optional[Player] = None) -> None:
             pass
 
     console.print(table)
+
+
+def print_players(game: Game) -> None:
+    console = Console()
+
+    tree = Tree("Players")
+    for player in game.players:
+        tree.add(f"{player.name} ({format_price(game.owner_shares_value(player))})")
+
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("Company")
+        table.add_column("Share")
+        table.add_column("Share price")
+
+        # only companies where player has shares
+        for company in game.tradable_companies():
+            share = company.owner_amount_of_shares(player)
+            share_price = company.owner_shares_value(player)
+
+            if share == 0:
+                continue
+            table.add_row(company.name, str(share), format_price(share_price))
+
+        tree.add(table)
+
+    console.print(tree)
+
+
+def destroy_company(game: Game, log: logging.Logger) -> None:
+    print("Destroying a company...")
+
+    company_name = questionary.select(
+        "Which company do you want to destroy?",
+        choices=[company.name for company in game.tradable_companies()],
+    ).ask()
+
+    company = game.company_by_name(company_name)
+
+    destroy_price = company.current_price() * DESTROY_COMPANY_EFFICIENCY
+
+    print(
+        f"Destroying {company_name} with current value {company.current_price()} for {destroy_price}"
+    )
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("Player")
+    table.add_column("Share")
+    table.add_column("Share price")
+
+    for player in company.owners():
+        share = company.owner_amount_of_shares(player)
+        share_price = Price(company.owner_shares_value(player) * DESTROY_COMPANY_EFFICIENCY)
+
+        table.add_row(player.name, str(share), format_price(share_price))
+
+    console = Console()
+    console.print(table)
+
+    approved = questionary.confirm("Do you want to continue?").ask()
+
+    if approved:
+        game.destroy_company(company, log)

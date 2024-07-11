@@ -10,6 +10,7 @@ from .model.trading import Trading, parse_trading_csv
 
 class GameMenuItems:
     RELOAD_TREND = "Reload Trend"
+    EXPORT_ROUND_PRICES = "Export Round Prices"
     BACK = "Back to main menu"
 
 
@@ -19,6 +20,7 @@ def game_menu(game: Game, log: Logger) -> None:
             "What do you want to do?",
             choices=[
                 GameMenuItems.RELOAD_TREND,
+                GameMenuItems.EXPORT_ROUND_PRICES,
                 GameMenuItems.BACK,
             ],
         ).ask()
@@ -26,6 +28,8 @@ def game_menu(game: Game, log: Logger) -> None:
         match action:
             case GameMenuItems.RELOAD_TREND:
                 reload_trend(game, log)
+            case GameMenuItems.EXPORT_ROUND_PRICES:
+                export_round_prices(game, log)
             case GameMenuItems.BACK:
                 break
 
@@ -93,3 +97,14 @@ def _compare_trend_and_print_diff(current_trend: Trading, new_trend: Trading) ->
         table.add_row(*row)
 
     console.print(table)
+
+
+def export_round_prices(game: Game, log: Logger) -> None:
+    path = questionary.path(
+        "Enter the path to export the round prices to",
+        validate=lambda path: path.endswith(".csv") or "Invalid path, must end with .csv",
+    ).ask()
+
+    game.export_round_prices_to_csv(path)
+    log.info("Exported round prices to %s", path)
+    print(f"Exported round prices to {path}")

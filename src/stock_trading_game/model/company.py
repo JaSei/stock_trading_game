@@ -1,5 +1,5 @@
-from typing import Optional
 from logging import Logger
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -7,7 +7,7 @@ from .numerics import OneSharePrice, Price, TotalPrice, format_price
 from .player import Player
 from .shares import AMOUNT_OF_SHARES, Shares
 
-EXTENSION_PERCENTAGE = 0.3
+EXTENSION_PERCENTAGE = 0.5
 
 
 class Company(BaseModel):
@@ -44,11 +44,18 @@ class Company(BaseModel):
         return TotalPrice(self.current_one_share_price() * self.owner_amount_of_shares(owner))
 
     def trade_shares(
-            self, log: Logger, from_player: Player, to_player: Player, amount: int, price_per_share: OneSharePrice
+        self,
+        log: Logger,
+        from_player: Player,
+        to_player: Player,
+        amount: int,
+        price_per_share: OneSharePrice,
     ) -> None:
         log.info(f"Company before trade: {self}")
 
-        log.info(f"Trade: {from_player.name} -> {to_player.name} {amount} shares for {price_per_share} each")
+        log.info(
+            f"Trade: {from_player.name} -> {to_player.name} {amount} shares for {price_per_share} each"
+        )
 
         self.shares.trade_shares(from_player, to_player, amount)
 

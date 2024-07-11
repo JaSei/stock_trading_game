@@ -43,7 +43,10 @@ class Shares(BaseModel):
         return True
 
     def owner_amount_of_shares(self, owner: Player) -> int:
-        return self.players_share[owner]
+        try:
+            return self.players_share[owner]
+        except KeyError:
+            return 0
 
     def owner_percent_share(self, owner: Player) -> float:
         return self.players_share[owner] / AMOUNT_OF_SHARES

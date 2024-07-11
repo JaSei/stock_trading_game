@@ -54,18 +54,18 @@ def test_company(log: Logger) -> None:
     company.extend(1, Price(100))
 
     assert len(company.extension) == 1
-    assert pytest.approx(company.current_price()) == TotalPrice(140)
+    assert pytest.approx(company.current_price()) == TotalPrice(160)
 
     company.trade_shares(
         log, Player(name="Player 1"), Player(name="Player 2"), 10, OneSharePrice(1)
     )
-    assert pytest.approx(company.current_price()) == TotalPrice(136)
+    assert pytest.approx(company.current_price()) == TotalPrice(154)
 
     company.trade_shares(
         log, Player(name="Player 2"), Player(name="Player 1"), 10, OneSharePrice(1)
     )
 
-    assert pytest.approx(company.current_price()) == TotalPrice(136 - 13.6 + 1 * 10)
+    assert pytest.approx(company.current_price()) == TotalPrice(148.6)
 
 
 def test_dividends() -> None:

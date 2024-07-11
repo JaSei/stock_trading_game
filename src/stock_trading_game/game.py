@@ -1,4 +1,6 @@
 import json
+from logging import Logger
+import csv
 from typing import Any, Optional
 
 from .model.company import Company, CompanyPlaceholder
@@ -243,3 +245,27 @@ class Game:
 
     def get_player_by_name(self, name: str) -> Player:
         return next(filter(lambda p: p.name == name, self.players))
+
+    def export_round_prices_to_csv(self, path: str) -> None:
+        with open(path, "w") as f:
+            csv_writer = csv.writer(f)
+
+            csv_writer.writerow([kind.name for kind in self.trading.kinds])
+
+            for prices in self.rounds_price_list():
+                csv_writer.writerow([str(price) for price in prices])        
+
+    def owner_shares_value(self, owner: Player) -> TotalPrice:
+        return TotalPrice(sum([company.owner_shares_value(owner) for company in self.tradable_companies()]))
+
+    def destroy_company(self, company: Company, log: Logger) -> None:
+        for kind in self.companies:
+            for i, c in enumerate(self.companies[kind]):
+                if c == company:
+                    self.companies[kind][i] = CompanyPlaceholder()
+                    log.info(f"Company {company.name} was destroyed")
+                    return
+        raise ValueError(f"Company {company.name} not found")
+
+    def kind_has_company(self, kind: CompanyKind, company: Company) -> bool:
+        return company in self.companies[kind]
